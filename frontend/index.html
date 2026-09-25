@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Items Frontend</title>
+</head>
+<body>
+
+    <h1>Work Items</h1>
+
+    <h2>Create Work Item</h2>
+
+    <form id="work-item-form">
+        <div>
+            <label for="title">Title:</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                required
+                minlength="3"
+                maxlength="100"
+            >
+        </div>
+
+        <br>
+
+        <div>
+            <label for="status">Status:</label>
+
+            <select id="status" name="status">
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+
+        <br>
+
+        <button type="submit">Create Work Item</button>
+    </form>
+
+    <p id="message"></p>
+
+    <hr>
+
+    <button id="load-button">Load Work Items</button>
+
+    <ul id="work-items-list"></ul>
+
+    <script src="script.js"></script>
+</body>
+</html>
