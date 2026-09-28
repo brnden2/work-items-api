@@ -1,5 +1,6 @@
+from contextlib import asynccontextmanager
 from typing import Literal
-
+from config import FRONTEND_ORIGINS
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
@@ -9,25 +10,24 @@ from models import WorkItem
 
 from fastapi.middleware.cors import CORSMiddleware
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
 app = FastAPI(
     title="Work Items API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=[
-        "http://127.0.0.1:5500", 
-        "http://localhost:5500"
-    ], 
+    allow_origins=FRONTEND_ORIGINS, 
     allow_credentials=True, 
     allow_methods=["*"], 
     allow_headers=["*"],
     )
-
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
 
 
 class WorkItemCreate(BaseModel):
@@ -72,7 +72,7 @@ def get_work_items(
 
 @app.get("/work-items/{item_id}")
 def get_work_item(item_id: int, session: Session = Depends(get_session)):
-    item = session.get(WorkItem, item-id)
+    item = session.get(WorkItem, item_id)
 
     if item is None:
         raise HTTPException(

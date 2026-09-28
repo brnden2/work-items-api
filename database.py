@@ -1,7 +1,5 @@
 from sqlmodel import SQLModel, Session, create_engine
-
-DATABASE_FILE = "work_items.db"
-DATABASE_URL = f"sqlite:///{DATABASE_FILE}"
+from config import DATABASE_URL
 
 connect_args = {
     "check_same_thread": False
