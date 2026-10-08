@@ -123,6 +123,11 @@ in_progress
 completed
 ```
 
+Partial updates must include at least one supported field.
+Explicit null values are rejected. Updated titles are trimmed before the 3-100 character length check.
+
+Invalid updates return HTTP 422 without changing the saved record.
+
 ## Automated Tests
 
 Run:
@@ -143,7 +148,7 @@ Current tests cover:
 
 Each test uses a fresh in-memory SQLite database, keeping tests isolated from the application's saved data.
 
-Latest local result: 9 test cases passed.
+Latest local result: 13 test cases passed.
 
 ## Configuration
 

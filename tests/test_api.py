@@ -151,3 +151,33 @@ def test_invalid_update_preserves_work_item(client, invalid_update):
     retrieved = client.get(f"/work-items/{original['id']}")
     assert retrieved.status_code == 200
     assert retrieved.json() == original
+
+@pytest.mark.parametrize(
+    "invalid_update",
+    [
+        {"title": None},
+        {"status": None},
+        {},
+        {"title": "   "},
+    ],
+)
+def test_reject_empty_or_null_updates(client, invalid_update):
+    created_response = client.post(
+        "/work-items",
+        json={"title": "Preserve this task", "status": "open"},
+    )
+    assert created_response.status_code == 201
+    original = created_response.json()
+
+    # Capture server errors as responses so we can check stored data too.
+    client.raise_server_exceptions = False
+
+    response = client.patch(
+        f"/work-items/{original['id']}",
+        json=invalid_update,
+    )
+
+    retrieved = client.get(f"/work-items/{original['id']}")
+    assert retrieved.status_code == 200
+    assert retrieved.json() == original
+    assert response.status_code == 422
