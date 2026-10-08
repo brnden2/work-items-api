@@ -133,10 +133,17 @@ Run:
 
 Current tests cover:
 
-- GET work items
-- title validation
-- status validation
-- 404 handling
+- Listing work items
+- Creating and retrieving a saved work item
+- Updating status while preserving the title
+- Deleting a work item and confirming its removal
+- Rejecting invalid titles and statuses during creation
+- Rejecting invalid updates without changing saved data
+- Returning 404 for a missing work item
+
+Each test uses a fresh in-memory SQLite database, keeping tests isolated from the application's saved data.
+
+Latest local result: 9 test cases passed.
 
 ## Configuration
 
