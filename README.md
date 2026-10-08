@@ -153,3 +153,19 @@ config.py
 The `.env` file is excluded from Git.
 
 `.env.example` provides the configuration template required to set up the project.
+
+## Continuous Integration (GitHub Actions)
+
+The workflow is defined in `.github/workflows/tests.yml`.
+
+GitHub Actions installs the project dependencies and runs the automated API tests. Workflow results are available in the repository's **Actions** tab.
+
+Before merging changes, check that the required test run has passed. Open a failed run to inspect its logs and identify the cause.
+
+Run the tests locally before pushing:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -v
+```
+
+The workflow has been verified successfully on the feature branch and on `main` after merging.
