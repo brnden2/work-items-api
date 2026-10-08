@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 from config import FRONTEND_ORIGINS
 from fastapi import Depends, FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlmodel import Session, select
 
 from database import create_db_and_tables, get_session
@@ -22,10 +22,10 @@ app = FastAPI(
 )
 
 app.add_middleware(
-    CORSMiddleware, 
-    allow_origins=FRONTEND_ORIGINS, 
-    allow_credentials=True, 
-    allow_methods=["*"], 
+    CORSMiddleware,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
     )
 
@@ -36,8 +36,20 @@ class WorkItemCreate(BaseModel):
 
 
 class WorkItemUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str | None = Field(default=None, min_length=3, max_length=100)
     status: Literal["open", "in_progress", "completed"] | None = None
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one field to update")
+
+        for field in self.model_fields_set:
+            if getattr(self, field) is None:
+                raise ValueError(f"{field} must not be null")
+        return self
 
 @app.get("/")
 def read_root():
@@ -92,12 +104,12 @@ def update_work_item(item_id: int, update: WorkItemUpdate, session: Session = De
             status_code=404,
             detail="Work item not found"
         )
-    
+
     update_data = update.model_dump(exclude_unset=True)
 
     for key, value in update_data.items():
         setattr(item, key, value)
-    
+
     session.add(item)
     session.commit()
     session.refresh(item)
@@ -114,6 +126,6 @@ def delete_work_item(item_id: int, session: Session = Depends(get_session)):
             status_code=404,
             detail="Work item not found"
         )
-    
+
     session.delete(item)
     session.commit()
