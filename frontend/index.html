@@ -45,7 +45,32 @@
 
     <hr>
 
-    <button id="load-button">Load Work Items</button>
+    <h2>Find Work Items</h2>
+
+<form id="filter-form">
+    <label for="search-title">Search by title:</label>
+    <input
+        id="search-title"
+        type="search"
+        maxlength="100"
+        placeholder="Enter part of a title"
+    >
+
+    <label for="filter-status">Status:</label>
+    <select id="filter-status">
+        <option value="">All statuses</option>
+        <option value="open">Open</option>
+        <option value="in_progress">In progress</option>
+        <option value="completed">Completed</option>
+    </select>
+
+    <button type="submit">Apply filters</button>
+    <button id="clear-filters" type="button">Clear filters</button>
+</form>
+
+<p id="filter-message" role="status" aria-live="polite"></p>
+
+<button id="load-button" type="button">Refresh results</button>
 
     <ul id="work-items-list"></ul>
 

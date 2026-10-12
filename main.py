@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Literal
 from config import FRONTEND_ORIGINS
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlmodel import Session, select
 
@@ -74,12 +74,22 @@ def create_work_item(item: WorkItemCreate, session: Session = Depends(get_sessio
 
 @app.get("/work-items")
 def get_work_items(
+    q: str | None = Query(default=None, max_length=100),
+    status: Literal["open", "in_progress", "completed"] | None = None,
     session: Session = Depends(get_session)
 ):
     statement = select(WorkItem)
-    items = session.exec(statement).all()
 
-    return items
+    if q and q.strip():
+        statement = statement.where(
+            WorkItem.title.icontains(q.strip(), autoescape=True)
+        )
+
+    if status is not None:
+        statement = statement.where(WorkItem.status == status)
+
+    statement = statement.order_by(WorkItem.id)
+    return session.exec(statement).all()
 
 
 @app.get("/work-items/{item_id}")
