@@ -148,7 +148,7 @@ Current tests cover:
 
 Each test uses a fresh in-memory SQLite database, keeping tests isolated from the application's saved data.
 
-Latest local result: 27 test cases passed.
+Latest local result: 39 test cases passed.
 
 ##Search and Status Filtering
 
@@ -169,6 +169,27 @@ Examples:
 - `/work-items?q=checklist&status=in_progress`
 
 The frontend provides title search, status selection, Apply filters, Clear filters and Refresh results controls.
+
+## Pagination
+
+GET /work-items supports:
+
+- `limit`: Records returned, default 10; allowed range 1–100.
+- `offset`: Matching records skipped, default 0; minimum 0.
+
+Search and status filters apply before pagination.
+Results are ordered by ID. An offset beyond the matching records
+returns an empty list. Invalid pagination parameters return HTTP 422.
+
+Examples:
+
+- `/work-items?limit=10&offset=0`
+- `/work-items?limit=10&offset=10`
+- `/work-items?status=open&limit=10&offset=0`
+
+The frontend displays 10 records per page with Previous and Next
+buttons. It requests one extra record to detect whether another
+page exists. Applying or clearing filters resets to page 1.
 
 ## Configuration
 

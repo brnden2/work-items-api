@@ -230,3 +230,50 @@ def test_search_and_filter_work_items(client, params, expected_indexes):
 def test_reject_invalid_filter_parameters(client, params):
     response = client.get("/work-items", params=params)
     assert response.status_code == 422
+
+@pytest.mark.parametrize(
+    "params, expected_indexes",
+    [
+        ({}, list(range(10))),
+        ({"limit": 5, "offset": 0}, list(range(5))),
+        ({"limit": 5, "offset": 5}, list(range(5, 10))),
+        ({"limit": 5, "offset": 10}, [10, 11]),
+        ({"limit": 5, "offset": 12}, []),
+        ({"limit": 100}, list(range(12))),
+        ({"q": "task", "status": "open", "limit": 2, "offset": 2}, [4, 6],),
+     ],
+)
+def test_work_item_pagination(client, params, expected_indexes):
+    created = []
+
+    for index in range(12):
+        response = client.post(
+            "/work-items",
+            json={
+                "title": f"Pagination task {index:02d}",
+                "status": "open" if index % 2 == 0 else "completed",
+            },
+        )
+        assert response.status_code == 201
+        created.append(response.json())
+
+    response = client.get("/work-items", params=params)
+
+    assert response.status_code == 200
+    assert response.json() == [
+        created[index] for index in expected_indexes
+    ]
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"limit": 0},
+        {"limit": 101},
+        {"limit": "invalid"},
+        {"offset": -1},
+        {"offset": "invalid"},
+    ],
+)
+def test_reject_invalid_pagination(client, params):
+    response = client.get("/work-items", params=params)
+    assert response.status_code == 422
