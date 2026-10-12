@@ -76,7 +76,9 @@ def create_work_item(item: WorkItemCreate, session: Session = Depends(get_sessio
 def get_work_items(
     q: str | None = Query(default=None, max_length=100),
     status: Literal["open", "in_progress", "completed"] | None = None,
-    session: Session = Depends(get_session)
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    session: Session = Depends(get_session),
 ):
     statement = select(WorkItem)
 
@@ -88,7 +90,12 @@ def get_work_items(
     if status is not None:
         statement = statement.where(WorkItem.status == status)
 
-    statement = statement.order_by(WorkItem.id)
+    statement = (
+        statement
+        .order_by(WorkItem.id)
+        .offset(offset)
+        .limit(limit)
+    )
     return session.exec(statement).all()
 
 

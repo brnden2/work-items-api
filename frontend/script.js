@@ -15,14 +15,27 @@ const filterMessage = document.getElementById("filter-message");
 let latestLoad = 0;
 let appliedFilters = "";
 
-async function loadWorkItems() {
+const previousPage = document.getElementById("previous-page");
+const nextPage = document.getElementById("next-page");
+const pageLabel = document.getElementById("page-label");
+
+const pageSize = 10;
+let currentOffset = 0;
+let hasNextPage = false;
+let pageLoaded = false;
+
+
+async function loadWorkItems(targetOffset = currentOffset) {
     const requestId = ++latestLoad;
+    previousPage.disabled = true;
+    nextPage.disabled = true;
     filterMessage.textContent = "Loading work items…";
-    workItemsList.replaceChildren();
 
     try {
-        const query = appliedFilters ? `?${appliedFilters}` : "";
-        const response = await fetch(`${API_URL}/work-items${query}`);
+        const params = new URLSearchParams(appliedFilters);
+        params.set("offset", targetOffset);
+        params.set("limit", pageSize + 1);
+        const response = await fetch(`${API_URL}/work-items?${params.toString()}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
@@ -32,22 +45,42 @@ async function loadWorkItems() {
 
         if (requestId !== latestLoad) return;
 
-        for (const item of items) {
+        if (!items.length && targetOffset > 0){
+            return await loadWorkItems(
+                Math.max(0, targetOffset - pageSize)
+            );
+        }
+
+        currentOffset = targetOffset;
+        hasNextPage = items.length > pageSize;
+        pageLoaded = true;
+
+        const visibleItems = items.slice(0, pageSize);
+        workItemsList.replaceChildren();
+
+        for (const item of visibleItems) {
             const listItem = document.createElement("li");
-            listItem.textContent =
-                `${item.id} - ${item.title} - ${item.status}`;
+            listItem.textContent = `${item.id} - ${item.title} - ${item.status}`;
             workItemsList.appendChild(listItem);
         }
 
-        filterMessage.textContent = items.length
-            ? `${items.length} work item${items.length === 1 ? "" : "s"} found.`
+        pageLabel.textContent =
+            `Page ${Math.floor(currentOffset / pageSize) + 1}`;
+
+        filterMessage.textContent = visibleItems.length
+            ? `Showing results ${currentOffset + 1}-${currentOffset + visibleItems.length}.`
             : "No work items found. Try another search or clear the filters.";
     } catch (error) {
         if (requestId !== latestLoad) return;
 
         filterMessage.textContent =
-            "Could not load work items. Check that the API is running and try again.";
+            "Could not load work items. Check that the API is running and select Refresh results.";
         console.error("Failed to load work items:", error);
+    } finally {
+        if (requestId === latestLoad) {
+            previousPage.disabled = !pageLoaded || currentOffset === 0;
+            nextPage.disabled = !pageLoaded || !hasNextPage;
+        }
     }
 }
 
@@ -88,7 +121,7 @@ async function createWorkItem(event) {
 }
 
 
-loadButton.addEventListener("click", loadWorkItems);
+loadButton.addEventListener("click", () => loadWorkItems());
 
 workItemForm.addEventListener("submit", createWorkItem);
 
@@ -102,11 +135,33 @@ filterForm.addEventListener("submit", (event) => {
     if (filterStatus.value) params.set("status", filterStatus.value);
 
     appliedFilters = params.toString();
-    loadWorkItems();
+    currentOffset = 0;
+    pageLoaded = false;
+    hasNextPage = false;
+    workItemsList.replaceChildren();
+    pageLabel.textContent = "Page 1";
+    loadWorkItems(0);
 });
 
 document.getElementById("clear-filters").addEventListener("click", () => {
     filterForm.reset();
     appliedFilters = "";
-    loadWorkItems();
+    currentOffset = 0;
+    pageLoaded = false;
+    hasNextPage = false;
+    workItemsList.replaceChildren();
+    pageLabel.textContent = "Page 1";
+    loadWorkItems(0);
+});
+
+previousPage.addEventListener("click", () => {
+    if (currentOffset > 0) {
+        loadWorkItems(currentOffset - pageSize);
+    }
+});
+
+nextPage.addEventListener("click", () => {
+    if (hasNextPage) {
+        loadWorkItems(currentOffset + pageSize);
+    }
 });
