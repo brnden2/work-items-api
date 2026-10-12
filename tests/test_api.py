@@ -181,3 +181,52 @@ def test_reject_empty_or_null_updates(client, invalid_update):
     assert retrieved.status_code == 200
     assert retrieved.json() == original
     assert response.status_code == 422
+
+@pytest.mark.parametrize(
+    "params, expected_indexes",
+    [
+        ({}, [0, 1, 2, 3]),
+        ({"q": "CHECKLIST"}, [0, 1]),
+        ({"q": " checklist "}, [0, 1]),
+        ({"status": "open"}, [0,3]),
+        ({"status": "in_progress"}, [1]),
+        ({"status": "completed"}, [2]),
+        ({"q": "checklist", "status": "in_progress"}, [1]),
+        ({"q": "no matching title"}, []),
+        ({"q": "checklist", "status": "completed"}, []),
+        ({"q": "   "}, [0, 1, 2, 3]),
+        ({"q": "%"}, [3]),
+        ({"q": "_"}, [3]),
+    ],
+)
+def test_search_and_filter_work_items(client, params, expected_indexes):
+    examples = [
+        {"title": "Prepare onboarding checklist", "status": "open"},
+        {"title": "Review offboarding checklist", "status": "in_progress"},
+        {"title": "Archive employee documents", "status": "completed"},
+        {"title": "Review 100% of asset_list", "status": "open"},
+    ]
+
+    created = []
+    for example in examples:
+        response = client.post("/work-items", json=example)
+        assert response.status_code == 201
+        created.append(response.json())
+
+    response = client.get("/work-items", params=params)
+
+    assert response.status_code == 200
+    assert response.json() == [
+        created[index] for index in expected_indexes
+    ]
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"status": "invalid"},
+        {"q": "x" * 101},
+    ],
+)
+def test_reject_invalid_filter_parameters(client, params):
+    response = client.get("/work-items", params=params)
+    assert response.status_code == 422

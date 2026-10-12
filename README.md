@@ -148,7 +148,27 @@ Current tests cover:
 
 Each test uses a fresh in-memory SQLite database, keeping tests isolated from the application's saved data.
 
-Latest local result: 13 test cases passed.
+Latest local result: 27 test cases passed.
+
+##Search and Status Filtering
+
+GET /work-items supports two optional query parameters:
+
+- `q`: Case-insensitive title search, up to 100 characters.
+- `status`: `open`, `in_progress` or `completed`.
+
+Both parameters can be combined be combined. Blank searches are ignored.
+Characters such as `%` and `_` are treated literally.
+Results are ordered by ID. No matches return as empty list.
+Invalid filter values return HTTP 422.
+
+Examples:
+
+- `/work-items?q=checklist`
+- `/work-items?status=open`
+- `/work-items?q=checklist&status=in_progress`
+
+The frontend provides title search, status selection, Apply filters, Clear filters and Refresh results controls.
 
 ## Configuration
 

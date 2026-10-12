@@ -7,11 +7,22 @@ const workItemForm = document.getElementById("work-item-form");
 const titleInput = document.getElementById("title");
 const statusInput = document.getElementById("status");
 const message = document.getElementById("message");
+const filterForm = document.getElementById("filter-form");
+const searchTitle = document.getElementById("search-title");
+const filterStatus = document.getElementById("filter-status");
+const filterMessage = document.getElementById("filter-message");
 
+let latestLoad = 0;
+let appliedFilters = "";
 
 async function loadWorkItems() {
+    const requestId = ++latestLoad;
+    filterMessage.textContent = "Loading work items…";
+    workItemsList.replaceChildren();
+
     try {
-        const response = await fetch(`${API_URL}/work-items`);
+        const query = appliedFilters ? `?${appliedFilters}` : "";
+        const response = await fetch(`${API_URL}/work-items${query}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
@@ -19,22 +30,26 @@ async function loadWorkItems() {
 
         const items = await response.json();
 
-        workItemsList.innerHTML = "";
+        if (requestId !== latestLoad) return;
 
         for (const item of items) {
             const listItem = document.createElement("li");
-
             listItem.textContent =
                 `${item.id} - ${item.title} - ${item.status}`;
-
             workItemsList.appendChild(listItem);
         }
 
+        filterMessage.textContent = items.length
+            ? `${items.length} work item${items.length === 1 ? "" : "s"} found.`
+            : "No work items found. Try another search or clear the filters.";
     } catch (error) {
+        if (requestId !== latestLoad) return;
+
+        filterMessage.textContent =
+            "Could not load work items. Check that the API is running and try again.";
         console.error("Failed to load work items:", error);
     }
 }
-
 
 async function createWorkItem(event) {
     event.preventDefault();
@@ -76,3 +91,22 @@ async function createWorkItem(event) {
 loadButton.addEventListener("click", loadWorkItems);
 
 workItemForm.addEventListener("submit", createWorkItem);
+
+filterForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const params = new URLSearchParams();
+    const query = searchTitle.value.trim();
+
+    if (query) params.set("q", query);
+    if (filterStatus.value) params.set("status", filterStatus.value);
+
+    appliedFilters = params.toString();
+    loadWorkItems();
+});
+
+document.getElementById("clear-filters").addEventListener("click", () => {
+    filterForm.reset();
+    appliedFilters = "";
+    loadWorkItems();
+});
