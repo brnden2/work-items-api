@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "http://127.0.0.1:8001";
 
 const loadButton = document.getElementById("load-button");
 const workItemsList = document.getElementById("work-items-list");
@@ -7,6 +7,8 @@ const workItemForm = document.getElementById("work-item-form");
 const titleInput = document.getElementById("title");
 const statusInput = document.getElementById("status");
 const message = document.getElementById("message");
+const createButton = document.getElementById("create-button");
+let creatingWorkItem = false;
 const filterForm = document.getElementById("filter-form");
 const searchTitle = document.getElementById("search-title");
 const filterStatus = document.getElementById("filter-status");
@@ -87,10 +89,26 @@ async function loadWorkItems(targetOffset = currentOffset) {
 async function createWorkItem(event) {
     event.preventDefault();
 
+    if (creatingWorkItem) return;
+
+    const title = titleInput.value.trim();
+
+    if (title.length < 3 || title.length > 100) {
+        message.textContent = "Enter a title between 3 and 100 characters.";
+        titleInput.focus();
+        return;
+    }
+
     const newItem = {
-        title: titleInput.value.trim(),
+        title,
         status: statusInput.value
     };
+
+    creatingWorkItem = true;
+    createButton.disabled = true;
+    createButton.textContent = "Creating...";
+    workItemForm.setAttribute("aria-busy", "true");
+    message.textContent = "Creating work item...";
 
     try {
         const response = await fetch(`${API_URL}/work-items`, {
@@ -102,21 +120,41 @@ async function createWorkItem(event) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
+            let errorMessage =
+                `Could not create the item (HTTP ${response.status}).`;
+
+            const errorBody = await response.json().catch(() => null);
+
+            if (Array.isArray(errorBody?.detail)) {
+                errorMessage = errorBody.detail.map(error => {
+                    const field = error.loc?.at(-1) || "Input";
+                    return `${field}: ${error.msg}`;
+                }).join(" ");
+            } else if (typeof errorBody?.detail === "string") {
+                errorMessage = errorBody.detail;
+            }
+
+            throw new Error(errorMessage);
         }
 
         const createdItem = await response.json();
 
         message.textContent =
-            `Created work item ${createdItem.id} successfully.`;
+            `Work item ${createdItem.id} created successfully.`;
 
         workItemForm.reset();
-
         await loadWorkItems();
-
     } catch (error) {
-        message.textContent = "Failed to create work item.";
+        message.textContent = error instanceof TypeError
+            ? "Could not reach the API. Check your connection and whether the API is running. The result is unknown; refresh the list before retrying."
+            : error.message;
+
         console.error("Failed to create work item:", error);
+    } finally {
+        creatingWorkItem = false;
+        createButton.disabled = false;
+        createButton.textContent = "Create Work Item";
+        workItemForm.removeAttribute("aria-busy");
     }
 }
 
