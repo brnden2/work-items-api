@@ -60,11 +60,28 @@ async function loadWorkItems(targetOffset = currentOffset) {
         const visibleItems = items.slice(0, pageSize);
         workItemsList.replaceChildren();
 
-        for (const item of visibleItems) {
-            const listItem = document.createElement("li");
-            listItem.textContent = `${item.id} - ${item.title} - ${item.status}`;
-            workItemsList.appendChild(listItem);
-        }
+       for (const item of visibleItems) {
+    const listItem = document.createElement("li");
+
+    const description = document.createElement("span");
+    description.textContent =
+        `${item.id} - ${item.title} - ${item.status} `;
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.setAttribute("aria-label", `Edit ${item.title}`);
+    editButton.addEventListener("click", () => openEditDialog(item));
+
+    const deleteButton = document.createElement("button");
+deleteButton.type = "button";
+deleteButton.textContent = "Delete";
+deleteButton.setAttribute("aria-label", `Delete ${item.title}`);
+deleteButton.addEventListener("click", () => openDeleteDialog(item));
+
+listItem.append(description, editButton, deleteButton);
+    workItemsList.appendChild(listItem);
+}
 
         pageLabel.textContent =
             `Page ${Math.floor(currentOffset / pageSize) + 1}`;
@@ -201,5 +218,165 @@ previousPage.addEventListener("click", () => {
 nextPage.addEventListener("click", () => {
     if (hasNextPage) {
         loadWorkItems(currentOffset + pageSize);
+    }
+});
+
+const editDialog = document.getElementById("edit-dialog");
+const editForm = document.getElementById("edit-work-item-form");
+const editTitle = document.getElementById("edit-title");
+const editStatus = document.getElementById("edit-status");
+const editMessage = document.getElementById("edit-message");
+const editSaveButton = document.getElementById("edit-save-button");
+const editCancelButton = document.getElementById("edit-cancel-button");
+
+let editingItemId = null;
+let savingEdit = false;
+
+function openEditDialog(item) {
+    editingItemId = item.id;
+    editTitle.value = item.title;
+    editStatus.value = item.status;
+    editMessage.textContent = "";
+    editDialog.showModal();
+    editTitle.focus();
+}
+
+editCancelButton.addEventListener("click", () => {
+    if (!savingEdit) editDialog.close();
+});
+
+editDialog.addEventListener("cancel", event => {
+    if (savingEdit) event.preventDefault();
+});
+
+editForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (savingEdit || editingItemId === null) return;
+
+    const title = editTitle.value.trim();
+
+    if (title.length < 3 || title.length > 100) {
+        editMessage.textContent = "Enter a title between 3 and 100 characters.";
+        editTitle.focus();
+        return;
+    }
+
+    const changes = { title, status: editStatus.value };
+
+    savingEdit = true;
+    editTitle.disabled = true;
+    editStatus.disabled = true;
+    editSaveButton.disabled = true;
+    editCancelButton.disabled = true;
+    editSaveButton.textContent = "Saving...";
+    editForm.setAttribute("aria-busy", "true");
+    editMessage.textContent = "Saving changes...";
+
+    try {
+        const response = await fetch(
+            `${API_URL}/work-items/${editingItemId}`,
+            {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(changes),
+            }
+        );
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            let detail = `Could not save changes (HTTP ${response.status}).`;
+
+            if (typeof body?.detail === "string") {
+                detail = body.detail;
+            } else if (Array.isArray(body?.detail)) {
+                detail = body.detail.map(error => error.msg).join(" ");
+            }
+
+            throw new Error(detail);
+        }
+
+        editDialog.close();
+        message.textContent = `Work item ${editingItemId} updated successfully.`;
+        await loadWorkItems();
+    } catch (error) {
+        editMessage.textContent = error instanceof TypeError
+            ? "Could not reach the API. Your changes are kept here. The result is unknown; cancel and refresh the list before retrying."
+            : error.message;
+    } finally {
+        savingEdit = false;
+        editTitle.disabled = false;
+        editStatus.disabled = false;
+        editSaveButton.disabled = false;
+        editCancelButton.disabled = false;
+        editSaveButton.textContent = "Save changes";
+        editForm.removeAttribute("aria-busy");
+    }
+});
+
+const deleteDialog = document.getElementById("delete-dialog");
+const deleteItemTitle = document.getElementById("delete-item-title");
+const deleteMessage = document.getElementById("delete-message");
+const deleteCancelButton = document.getElementById("delete-cancel-button");
+const deleteConfirmButton = document.getElementById("delete-confirm-button");
+
+let deletingItemId = null;
+let deletingWorkItem = false;
+
+function openDeleteDialog(item) {
+    deletingItemId = item.id;
+    deleteItemTitle.textContent = `#${item.id}: ${item.title}`;
+    deleteMessage.textContent = "";
+    deleteDialog.showModal();
+    deleteCancelButton.focus();
+}
+
+deleteCancelButton.addEventListener("click", () => {
+    if (!deletingWorkItem) deleteDialog.close();
+});
+
+deleteDialog.addEventListener("cancel", event => {
+    if (deletingWorkItem) event.preventDefault();
+});
+
+deleteConfirmButton.addEventListener("click", async () => {
+    if (deletingWorkItem || deletingItemId === null) return;
+
+    deletingWorkItem = true;
+    deleteCancelButton.disabled = true;
+    deleteConfirmButton.disabled = true;
+    deleteConfirmButton.textContent = "Deleting...";
+    deleteDialog.setAttribute("aria-busy", "true");
+    deleteMessage.textContent = "Deleting work item...";
+
+    try {
+        const response = await fetch(
+            `${API_URL}/work-items/${deletingItemId}`,
+            { method: "DELETE" }
+        );
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+
+            throw new Error(
+                typeof body?.detail === "string"
+                    ? body.detail
+                    : `Could not delete the item (HTTP ${response.status}).`
+            );
+        }
+
+        deleteDialog.close();
+        message.textContent =
+            `Work item ${deletingItemId} deleted successfully.`;
+        await loadWorkItems();
+    } catch (error) {
+        deleteMessage.textContent = error instanceof TypeError
+            ? "Could not reach the API. The result is unknown; close this window and refresh the list before retrying."
+            : error.message;
+    } finally {
+        deletingWorkItem = false;
+        deleteCancelButton.disabled = false;
+        deleteConfirmButton.disabled = false;
+        deleteConfirmButton.textContent = "Delete permanently";
+        deleteDialog.removeAttribute("aria-busy");
     }
 });

@@ -88,6 +88,59 @@
         </button>
     </nav>
 
+    <dialog id="edit-dialog" aria-labelledby="edit-heading">
+    <h2 id="edit-heading">Edit work item</h2>
+    <p>Update the title or status, then select Save changes.</p>
+
+    <form id="edit-work-item-form">
+        <div>
+            <label for="edit-title">Title</label>
+            <input
+                id="edit-title"
+                type="text"
+                required
+                minlength="3"
+                maxlength="100"
+            >
+        </div>
+
+        <div>
+            <label for="edit-status">Status</label>
+            <select id="edit-status">
+                <option value="open">Open</option>
+                <option value="in_progress">In progress</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+
+        <p id="edit-message" role="status" aria-live="polite"></p>
+
+        <button id="edit-save-button" type="submit">
+            Save changes
+        </button>
+        <button id="edit-cancel-button" type="button">
+            Cancel
+        </button>
+    </form>
+</dialog>
+
+<dialog id="delete-dialog" aria-labelledby="delete-heading">
+    <h2 id="delete-heading">Delete work item?</h2>
+
+    <p>This permanently deletes the following work item:</p>
+    <p id="delete-item-title"></p>
+    <p>This action cannot be undone.</p>
+
+    <p id="delete-message" role="status" aria-live="polite"></p>
+
+    <button id="delete-cancel-button" type="button" autofocus>
+        Keep work item
+    </button>
+    <button id="delete-confirm-button" type="button">
+        Delete permanently
+    </button>
+</dialog>
+
     <script src="script.js"></script>
 </body>
 </html>

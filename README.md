@@ -245,3 +245,37 @@ Backend automated tests: 39 passed.
 Run the API on port 8001 when port 8000 is occupied.
 The frontend API_URL must match the backend port.
 The frontend runs at http://127.0.0.1:5500.
+
+## Edit and Delete Work Items
+
+Each work item has Edit and Delete buttons.
+
+### Editing
+
+Select Edit to change the title or status, then select Save changes.
+Cancel closes the window without saving.
+
+### Deletion
+
+Select Delete to review the item's ID and title.
+Select Keep work item to cancel, or Delete permanently to confirm.
+Deleted items cannot be recovered through the application.
+
+### Request Feedback
+
+Save and delete buttons are disabled while their request is running.
+If a request fails, an error message appears and the controls become
+available again. Failed edits preserve the entered values.
+
+If a connection error occurs, refresh the list after reconnecting
+to check the result before retrying.
+
+### Verification
+
+- Existing automated API suite: 39 tests passed.
+- Edited title and status remained saved after refreshing.
+- Cancelling deletion preserved the item.
+- Confirmed deletion removed the item after refreshing.
+- API connection failure checks passed for editing and deletion.
+
+Frontend behaviour was verified manually in the browser.
