@@ -222,3 +222,26 @@ Run the tests locally before pushing:
 ```
 
 The workflow has been verified successfully on the feature branch and on `main` after merging.
+
+## Frontend Creation Feedback
+
+The create form prevents duplicate submissions while a request is processing.
+The button displays "Creating..." and is temporarily disabled.
+
+Successful creation clears the form and displays the new work-item ID.
+Validation and connection errors display feedback while preserving the entered values.
+After a connection failure, refresh the list before retrying because the request outcome may be unknown.
+
+### Manual verification
+
+- Loading state and disabled button checked using network throttling.
+- With the backend stopped, the connection error appeared, entered values remained, and the button became usable again.
+- After restarting the backend, creation succeeded and the form cleared.
+
+Backend automated tests: 39 passed.
+
+### Local development ports
+
+Run the API on port 8001 when port 8000 is occupied.
+The frontend API_URL must match the backend port.
+The frontend runs at http://127.0.0.1:5500.
